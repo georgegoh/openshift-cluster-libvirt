@@ -1,0 +1,11 @@
+---
+libvirt_storage_pool_path: "/mnt/kvm-volumes"
+libvirt_storage_pool: "volumes"
+libvirt_network: "default"
+libvirt_uri: "qemu:///system"
+
+rh_subscription:
+  username: ""
+  password: ""
+  pool: ""
+

@@ -1,0 +1,35 @@
+---
+nodes:
+  domain_name: "int.spodon.com"
+  image: "/mnt/volumes/rhel-server-7.4-x86_64-kvm.qcow2"
+  masters:
+    - name: "ocp-master"
+      memory_mb: "4096"
+      vcpu: "1"
+      mac: "f2:00:00:00:00:01"
+
+  computes:
+    - name: "ocp-node-1"
+      memory_mb: "2096"
+      vcpu: "1"
+      mac: "f2:00:00:00:01:01"
+    - name: "ocp-node-2"
+      memory_mb: "2096"
+      vcpu: "1"
+      mac: "f2:00:00:00:01:02"
+
+  infra:
+    - name: "ocp-infra-1"
+      memory_mb: "2096"
+      vcpu: "1"
+      mac: "f2:00:00:00:02:01"
+    - name: "ocp-infra-2"
+      memory_mb: "2096"
+      vcpu: "1"
+      mac: "f2:00:00:00:02:02"
+    - name: "ocp-infra-3"
+      memory_mb: "2096"
+      vcpu: "1"
+      mac: "f2:00:00:00:02:03"
+
+

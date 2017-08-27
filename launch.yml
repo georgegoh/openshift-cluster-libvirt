@@ -1,0 +1,32 @@
+---
+- name: Launch instance(s)
+  hosts: localhost
+  become: no
+  connection: local
+  gather_facts: no
+  vars_files:
+  - vars.yml
+  - cluster_nodes.yml
+  tasks:
+
+  - include: tasks/launch_instances.yml
+    vars:
+      instances: "{{ nodes.masters }}"
+      domain: "{{ nodes.domain_name }}"
+      image_name: "{{ nodes.image }}"
+
+  - include: tasks/launch_instances.yml
+    vars:
+      instances: "{{ nodes.computes }}"
+      domain: "{{ nodes.domain_name }}"
+      image_name: "{{ nodes.image }}"
+
+  - include: tasks/launch_instances.yml
+    vars:
+      instances: "{{ nodes.infra }}"
+      domain: "{{ nodes.domain_name }}"
+      image_name: "{{ nodes.image }}"
+
+#- include: update.yml
+
+#- include: list.yml

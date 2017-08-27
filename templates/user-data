@@ -1,0 +1,33 @@
+#cloud-config
+password: Demo123!
+ssh_pwauth: True
+chpasswd: { expire: False }
+
+ssh_authorized_keys:
+  - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDAwpI76ck447Dj937+IL5ggv4RZLbY16kQgyyaWfP9R+BH717KQD9uSl5r1pqH7PyI0k5Bzpww2dCGcDoWHyx4JOkUTEsnzzaTsZvRupYRymCgW0Sm2hI5INtoDNoOlrwSSl82WPA4XwCIB6kl/bQLkc+DJdtUwqIS9I7Q4RLe7RsCAb3n0WcJ5WbA3GvWjkEpF1oMsDaHS+ypBnr4r32Q+MlUyq1C2A58g7nJZ+OrlyasDung8DjKa4gzKNTuMnUsX3shsgMcqaGVERW7Y6eBJ9+To+jKBJp+Fv0IkxotKoIbiBIa+OKBeM6QAfza3Zd2WMCExIJKHhzSpeWBApt/
+  - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC/LjY8RPNEg1lmQgSeaOzVlXPTGFHS/p4JKPHtc6gr2qpzsJmA3a3CIL5c31IMf+XsKEZfAkoMB8ltfLbKefU5v8Q5DhYe1TZuzipAkWY5a9oD0F2c6QaoQQ5nH0LV3ntLiyeyJNWgH4dAxOWbMAbPRsR2uuM+pa/8LvZi3wSqKEsAvo2x6GhAg7YxfqOni/LXrFq1Vsn7s4YUAFbLGCvdWguSCCnVyU6MdmkbtNQIa8rImJUJaAPQ3nWTQE/VLAlWWncrUO3JCDTlNQosOAhxvdB6aK6mKAMoCI1U/ZUJMtaqJLxhj0uW0PmIZt+DGgrDhWkHkpkXrxCAXiGw+Jid
+  - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDJ8ehLwZPaFeBqu25l4riN4aNcfhZiGd5OLTTMjjWaerPZ7Jl+583QaT3wJyCSanh9vF0421whZdpUcrcOSztgG4ZvoTKPdsW5jDVsffc91+GsabN/rGxpmogqXkqcMBr7Tx5lAcJyF2wnT6ZcqXB+qG6obErTsQf1huF53/O9A1pZQwAIGuwEzHfrIwzgpBhut+67kZH//mQYVbnCCec3owrzXFu5I60aixPATh58ir8hCzWZELlfhoLctr8VJlQPPBi4bhp2OuOpcvYnMv6oSr3RRESzg6bqCDIAR3GpXu+2S97sefECKPl0E5mtvb0GdOi15A3Iooq5WJTKMIpH root@nuc2.int.spodon.com
+
+write_files:
+  - path: /etc/sysconfig/docker-storage-setup
+    owner: root:root
+    permissions: '0644'
+    content: |
+      DEVS=/dev/vdb
+      VG=docker_vg
+      EXTRA_DOCKER_STORAGE_OPTIONS='--storage-opt dm.blkdiscard=true'
+  - path: /etc/systemd/system/fstrim.timer.d/hourly.conf
+    content: |
+      [Timer]
+      OnCalendar=hourly
+
+runcmd:
+  - systemctl enable --now fstrim.timer
+  - subscription-manager register --username='{{ rh_subscription.username }}' --password='{{ rh_subscription.password }}'
+  - subscription-manager attach --pool='{{ rh_subscription.pool }}'
+  - subscription-manager repos --disable=* --enable=rhel-7-server-rpms --enable=rhel-7-server-extras-rpms --enable=rhel-7-server-ose-3.6-rpms --enable=rhel-7-fast-datapath-rpms
+  - yum update -y
+  - yum install -y wget git net-tools bind-utils iptables-services bridge-utils bash-completion kexec-tools sos psacct atomic-openshift-utils patch tmux iputils telnet vim docker
+  - docker-storage-setup
+
+final_message: "First Boot Done!"

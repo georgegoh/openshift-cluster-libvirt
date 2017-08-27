@@ -1,0 +1,3 @@
+Starter scripts for creating and OpenShift Enterprise cluster on libvirt.
+
+Insprired by the scripts from the openshift/openshift-ansible repo.

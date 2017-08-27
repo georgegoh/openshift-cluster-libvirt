@@ -1,0 +1,58 @@
+---
+- name: Collecting master instances to terminate
+  hosts: localhost
+  become: no
+  connection: local
+  gather_facts: no
+  vars_files:
+  - vars.yml
+  - cluster_nodes.yml
+  tasks:
+  - add_host:
+      name: "{{ item.name }}"
+      groups: oo_hosts_to_terminate
+      ansible_ssh_user: "cloud-user"
+      ansible_become: "yes"
+    with_items: '{{ nodes.masters }}'
+
+- name: Collecting compute instances to terminate
+  hosts: localhost
+  become: no
+  connection: local
+  gather_facts: no
+  vars_files:
+  - vars.yml
+  - cluster_nodes.yml
+  tasks:
+  - add_host:
+      name: "{{ item.name }}"
+      groups: oo_hosts_to_terminate
+      ansible_ssh_user: "cloud-user"
+      ansible_become: "yes"
+    with_items: '{{ nodes.computes }}'
+
+- name: Collecting infra instances to terminate
+  hosts: localhost
+  become: no
+  connection: local
+  gather_facts: no
+  vars_files:
+  - vars.yml
+  - cluster_nodes.yml
+  tasks:
+  - add_host:
+      name: "{{ item.name }}"
+      groups: oo_hosts_to_terminate
+      ansible_ssh_user: "cloud-user"
+      ansible_become: "yes"
+    with_items: '{{ nodes.infra }}'
+  - debug:
+      msg: "{{ groups['oo_hosts_to_terminate'] }}"
+
+- name: Remove Red Hat subs
+  hosts: oo_hosts_to_terminate
+  tasks:
+    - redhat_subscription:
+        state: absent
+      when: ansible_distribution == "RedHat"
+

@@ -1,0 +1,53 @@
+
+- name: Create the cloud-init config drive path
+  file:
+    dest: '{{ libvirt_storage_pool_path }}/{{ item.name }}_configdrive/'
+    state: directory
+  with_items: '{{ instances }}'
+
+- name: Create the cloud-init config drive files
+  template:
+    src: '{{ item[1] }}'
+    dest: '{{ libvirt_storage_pool_path }}/{{ item[0].name }}_configdrive/{{ item[1] }}'
+  with_nested:
+    - '{{ instances }}'
+    - [ user-data, meta-data ]
+    - '{{ domain }}'
+
+- name: Check for genisoimage
+  command: which genisoimage
+  register: which_genisoimage
+
+- name: Create the cloud-init config drive
+  command: "{{ 'genisoimage' if which_genisoimage.rc == 0 else 'mkisofs' }} -output {{ libvirt_storage_pool_path }}/{{ item.name }}_cloud-init.iso -volid cidata -joliet -rock user-data meta-data"
+  args:
+    chdir: "{{ libvirt_storage_pool_path }}/{{ item.name }}_configdrive/"
+    creates: "{{ libvirt_storage_pool_path }}/{{ item.name }}_cloud-init.iso"
+  with_items: '{{ instances }}'
+
+- name: Refresh the libvirt storage pool for openshift
+  command: 'virsh -c {{ libvirt_uri }} pool-refresh {{ libvirt_storage_pool }}'
+
+- name: Create VM drives
+  command: 'virsh -c {{ libvirt_uri }} vol-create-as {{ libvirt_storage_pool }} {{ item.name }}-os.qcow2 10G --format qcow2 --backing-vol {{ image_name }} --backing-vol-format qcow2'
+  with_items: '{{ instances }}'
+
+- name: Create VM docker drives
+  command: 'virsh -c {{ libvirt_uri }} vol-create-as {{ libvirt_storage_pool }} {{ item.name }}-docker-storage.qcow2 20G --format qcow2 --allocation 0'
+  with_items: '{{ instances }}'
+
+- name: Create VMs
+  virt:
+    name: '{{ item.name }}.{{ domain }}'
+    command: define
+    xml: "{{ lookup('template', '../templates/domain.xml') }}"
+    uri: '{{ libvirt_uri }}'
+  with_items: '{{ instances }}'
+
+- name: Start VMs
+  virt:
+    name: '{{ item.name }}.{{ domain }}'
+    state: running
+    uri: '{{ libvirt_uri }}'
+  with_items: '{{ instances }}'
+

@@ -1,0 +1,99 @@
+---
+- name: Collecting master instances to terminate
+  hosts: localhost
+  become: no
+  connection: local
+  gather_facts: no
+  vars_files:
+  - vars.yml
+  - cluster_nodes.yml
+  tasks:
+  - add_host:
+      name: "{{ item.name }}"
+      groups: oo_hosts_to_terminate
+      ansible_ssh_user: "cloud-user"
+      ansible_become: "yes"
+    with_items: '{{ nodes.masters }}'
+
+- name: Collecting compute instances to terminate
+  hosts: localhost
+  become: no
+  connection: local
+  gather_facts: no
+  vars_files:
+  - vars.yml
+  - cluster_nodes.yml
+  tasks:
+  - add_host:
+      name: "{{ item.name }}"
+      groups: oo_hosts_to_terminate
+      ansible_ssh_user: "cloud-user"
+      ansible_become: "yes"
+    with_items: '{{ nodes.computes }}'
+
+- name: Collecting infra instances to terminate
+  hosts: localhost
+  become: no
+  connection: local
+  gather_facts: no
+  vars_files:
+  - vars.yml
+  - cluster_nodes.yml
+  tasks:
+  - add_host:
+      name: "{{ item.name }}"
+      groups: oo_hosts_to_terminate
+      ansible_ssh_user: "cloud-user"
+      ansible_become: "yes"
+    with_items: '{{ nodes.infra }}'
+  - debug:
+      msg: "{{ groups['oo_hosts_to_terminate'] }}"
+
+- name: Remove Red Hat subs
+  hosts: oo_hosts_to_terminate
+  tasks:
+    - redhat_subscription:
+        state: absent
+      when: ansible_distribution == "RedHat"
+
+- name: Terminate instance(s)
+  hosts: localhost
+  become: no
+  connection: local
+  gather_facts: no
+  vars_files:
+  - vars.yml
+  - cluster_nodes.yml
+  tasks:
+  - name: Destroy VMs
+    virt:
+      name: '{{ item[0] }}.{{ nodes.domain_name }}'
+      command: '{{ item[1] }}'
+      uri: '{{ libvirt_uri }}'
+    with_nested:
+    - "{{ groups['oo_hosts_to_terminate'] }}"
+    - [ destroy, undefine ]
+
+  - name: Delete VM drives
+    command: 'virsh -c {{ libvirt_uri }} vol-delete --pool {{ libvirt_storage_pool }} {{ item }}-os.qcow2'
+    args:
+      removes: '{{ libvirt_storage_pool_path }}/{{ item }}-os.qcow2'
+    with_items: "{{ groups['oo_hosts_to_terminate'] }}"
+
+  - name: Delete VM docker drives
+    command: 'virsh -c {{ libvirt_uri }} vol-delete --pool {{ libvirt_storage_pool }} {{ item }}-docker-storage.qcow2'
+    args:
+      removes: '{{ libvirt_storage_pool_path }}/{{ item }}-docker-storage.qcow2'
+    with_items: "{{ groups['oo_hosts_to_terminate'] }}"
+
+  - name: Delete the VM cloud-init image
+    file:
+      path: '{{ libvirt_storage_pool_path }}/{{ item }}_cloud-init.iso'
+      state: absent
+    with_items: "{{ groups['oo_hosts_to_terminate'] }}"
+
+  - name: Remove the cloud-init config directory
+    file:
+      path: '{{ libvirt_storage_pool_path }}/{{ item }}_configdrive/'
+      state: absent
+    with_items: "{{ groups['oo_hosts_to_terminate'] }}"
